@@ -27,6 +27,7 @@ void child_code(int i, pid_t pid){
         sleep(5);
         write(pipefd[i][1], val, sizeof(val));
         printf("[Child][%d] Child finished hard work, writing back %d!\n", i, getpid(), val);
+        
         }
     else {
            //reading set
