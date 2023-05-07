@@ -17,7 +17,7 @@ char buffer[256];
 void child_code(int i, pid_t pid){
     if(pid<0){
             fprintf(stderr,"Error while forking!\n");
-            exit(1);
+            exit(1);    
         }
         //child code
     else if(!pid){
@@ -28,7 +28,7 @@ void child_code(int i, pid_t pid){
         sleep(5);
         write(pipefd[i][1], val, sizeof(val));
         printf("[Child][%d] Child finished hard work, writing back %d!\n", i, getpid(), val);
-        
+        exit(1);
         }
     else {
            //reading set
