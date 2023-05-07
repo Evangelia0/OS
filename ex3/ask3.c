@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 
 int round_robin = 1;
 int (*pipefd)[2];
@@ -14,28 +16,33 @@ int n,nbytes;
 pid_t* children;
 
 void child_code(int i, pid_t pid){
+    //i=[0...n-1]
     if(pid<0){
             fprintf(stderr,"Error while forking!\n");
             exit(1);
         }
         //child code
     else if(!pid){
-            
+            //for reading
+            int i = pipefd[i][0];
         }
-    else {
+    else { 
+           int maximum = STDIN_FILENO
            //reading set
            fd_set rfds;
            /* Watch stdin (fd 0) to see when it has input. */
            //initialization
            FD_ZERO(&rfds);
            //fd for terminal(input) is assigned to 0
-           FD_SET(0, &rfds);
+           FD_SET(STDIN_FILENO, &rfds);
            for(int i=0;i<n;i++){
               FD_SET(pipefd[i][0],&rfds);
+              maximum = MAX(pipefd[i][0],maximum);
            }
-
+            maxfd = maximum+1;
             while(1){
-
+              int ready = select(maxfd,&rfds,NULL,NULL,NULL);
+              
             }
         }
 
@@ -66,6 +73,7 @@ int main(int argc,char* argv[]){
     
     pipefd = malloc(n * sizeof(int[2]));
     children = (int*)malloc(n*sizeof(int));
+    //dynamic allocation of memory
      if(children==NULL){
         fprintf(stderr,"Failed to allocate memory for children array!\n");
         exit(1);
