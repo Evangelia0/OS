@@ -42,9 +42,6 @@ void child_code(int i, pid_t pid){
               FD_SET(pipefd[i][0],&rfds);
            }
 
-           
-
-
             while(1){
 
             }
@@ -53,6 +50,8 @@ void child_code(int i, pid_t pid){
 }
 
 int main(int argc,char* argv[]){
+
+    //argument check
     if(argc<=1){
         fprintf(stdout,"Usage: ask3 <nChildren> [--random] [--round-robin]");
         exit(1);
