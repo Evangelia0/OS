@@ -14,6 +14,7 @@ int round_robin = 1;
 int (*pipefd)[2];
 int n,nbytes;
 pid_t* children;
+int val;
 
 void child_code(int i, pid_t pid){
     //i=[0...n-1]
@@ -23,8 +24,14 @@ void child_code(int i, pid_t pid){
         }
         //child code
     else if(!pid){
-            //for reading
-            int i = pipefd[i][0];
+        
+        read(pipefd[i][0], val, sizeof(val));
+        printf("[Child][%d] Child received %d!\n", i, getpid(), val);
+        val++;
+        sleep(5);
+        write(pipefd[i][1], val, sizeof(val));
+        printf("[Child][%d] Child finished hard work, writing back %d!\n", i, getpid(), val);
+        
         }
     else { 
            int maximum = STDIN_FILENO
