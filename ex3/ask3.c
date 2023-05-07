@@ -12,7 +12,7 @@ int round_robin = 1;
 int (*pipefd)[2];
 int n,nbytes;
 pid_t* children;
-int val;
+char buffer[256];
 
 void child_code(int i, pid_t pid){
     if(pid<0){
@@ -21,8 +21,9 @@ void child_code(int i, pid_t pid){
         }
         //child code
     else if(!pid){
-        read(pipefd[i][0], val, sizeof(val));
-        printf("[Child][%d] Child received %d!\n", i, getpid(), val);
+        read(pipefd[i][0], buffer, sizeof(buffer));
+        printf("[Child][%d] Child received %d!\n", i, getpid(), buffer);
+        int val = atoi(buffer);
         val++;
         sleep(5);
         write(pipefd[i][1], val, sizeof(val));
