@@ -15,6 +15,7 @@ int (*pipefd)[2];
 int n,nbytes;
 pid_t* children;
 int val;
+int curr_child_index;
 
 void child_code(int i, pid_t pid){
     //i=[0...n-1]
@@ -33,8 +34,9 @@ void child_code(int i, pid_t pid){
         printf("[Child][%d] Child finished hard work, writing back %d!\n", i, getpid(), val);
         
         }
-    else { 
-           int maximum = STDIN_FILENO
+    else {
+           char buffer[1025];
+           int maximum = STDIN_FILENO;
            //reading set
            fd_set rfds;
            /* Watch stdin (fd 0) to see when it has input. */
@@ -46,9 +48,60 @@ void child_code(int i, pid_t pid){
               FD_SET(pipefd[i][0],&rfds);
               maximum = MAX(pipefd[i][0],maximum);
            }
-            maxfd = maximum+1;
+            int maxfd = maximum+1;
+            int num;
             while(1){
               int ready = select(maxfd,&rfds,NULL,NULL,NULL);
+                if (ready == -1)
+                    perror("select()");
+                else if (ready){
+                   //check id it is coming from terminal
+                   if(FD_ISSET(STDIN_FILENO, &rfds)){
+                      if ((n = read (STDIN_FILENO, buffer, 1024 ) ) > 0) {
+                            buffer[n] = '\0';  //terminate the string
+                            if (buffer[n-1] == '\n') {
+                                    buffer[n-1] = '\0';
+                                }
+                            printf("read %d bytes from the pipe: %s\n", n, buffer);
+                            if(strcmp(buffer, "help")==0){
+                               fprintf(stdout,"Type a number to send job to a child! ");
+                            }
+                            else if(!strncmp(buffer,"exit",4)){
+                                for(int i=0;i<n;i++){
+                                    kill(children[i],SIGTERM);
+                                }
+                                //wait for all children to terminate
+                                int i=0;
+                                int curr,status;
+                                while(i<n){
+                                    fprintf(stdout,"Waiting for %d children to exit\n",n-i);
+                                    curr=waitpid(-1,&status,0);
+                                    if(curr==-1){
+                                        fprintf(stderr,"Error while waiting for terminated children!\n");
+                                        exit(1);
+                                    }
+                                i++;
+                                }
+                            }
+                            else{
+                                if(!num==atoi(buffer)){
+                                    fprintf(stdout,"Type a number to send job to a child! ");
+                                }
+                                else{
+                                    //check how to distribute tasks
+                                    if(round_robin){
+                                        write(pipefd[curr_child_index][1], buffer, strlen(buffer) + 1);
+                                    }
+                                    else{
+
+                                    }
+                                }
+                            }     
+                        }  
+                   }
+                }
+                else
+                    printf("No data within five seconds.\n");
               
             }
         }
@@ -65,12 +118,12 @@ int main(int argc,char* argv[]){
 
     n = atoi(argv[1]);
     
-    if(argc == 2){
+    if(argc == 3){
         if(!strcmp(argv[2],"--random")){
             round_robin = 0;
         }
         else if(!strcmp(argv[2],"--round-robin")){
-            round_robin = 1;
+            curr_child_index = 0;
         }
         else {
             fprintf(stdout,"Usage: ask3 <nChildren> [--random] [--round-robin]");
