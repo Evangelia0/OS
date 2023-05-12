@@ -20,9 +20,9 @@ void alarm_handler (int s){
     //     alarm(1);
     // }
     total_sec = time(NULL)-begin;
-    if (state == 0 ) fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are open!\n",state,getpid(),(int)total_sec);
+    if (state == 0 ) fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are open!\n",state,getpid(),total_sec);
 
-    else if (state == 1) fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are closed!\n",state,getpid(),(int)total_sec);
+    else if (state == 1) fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are closed!\n",state,getpid(),total_sec);
     else{
         fprintf(stderr, "Error while printing the gate state!\n");
         exit(1);
@@ -35,11 +35,11 @@ void usr1_handler (int signum){
     total_sec = time(NULL)-begin;
     if (state == 0) {
         state = 1;
-        fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are closed!\n",state,getpid(),(int)total_sec);
+        fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are closed!\n",state,getpid(),total_sec);
     }
     else if (state == 1) {
         state = 0;
-        fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are open!\n",state,getpid(),(int)total_sec);
+        fprintf(stdout, "[GATE=%d/PID=%d/TIME=%d]The gates are open!\n",state,getpid(),total_sec);
     }
     else {
         fprintf(stderr, "Error! Failed to flip the gate's state!\n");
@@ -51,7 +51,7 @@ void usr2_handler (int signum){
     total_sec = time(NULL)-begin;
 
     if (state == 0 || state == 1) {
-        fprintf(stdout, "Child with pid: %d, state: %d, %d seconds\n",getpid(),state, (int)total_sec);
+        fprintf(stdout, "Child with pid: %d, state: %d, %d seconds\n",getpid(),state, total_sec);
     }
     else {
         fprintf(stderr, "Error! Not valid gate state!\n");
@@ -77,10 +77,12 @@ int main(int argc, char* argv[]){
     /*If you use sigaction to establish a signal handler, you can specify how that handler should behave.
      If you specify the SA_RESTART flag, return from that handler will resume a primitive;
     otherwise, return from that handler will cause EINTR. */
+    usr1_action.sa_flags = SA_RESTART;
     usr2_action.sa_handler = usr2_handler;
     sigemptyset(&sigset_usr2);
     sigaddset(&sigset_usr2, SIGUSR1);
     sigaddset(&sigset_usr2, SIGALRM);
+    usr2_action.sa_flags = SA_RESTART;
 
     //set up the alarm via sigaction
     alarm_action.sa_handler=alarm_handler;

@@ -201,7 +201,6 @@ int main(int argc, char* argv[]){
                 exit(1);
             }
             pid_t newchild = fork();
-            printf("new child is :%d\n",newchild);
             children[id] = newchild;
             fprintf(stdout,"[PARENT/PID=%d] Created new child for gate %d (PID %d) and initial state '%c\n' ", getpid(),id,newchild,str_state[id]);
             child_code(id,newchild);
