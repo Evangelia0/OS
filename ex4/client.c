@@ -62,6 +62,18 @@ int main(int argc, char *argv[]){
     //define socket
     int domain = AF_INET;
     int type = SOCK_STREAM;
+    /*
+         Stream communication (SOCK_STREAM), όπου τα δεδοµένα στέλνονται πάνω σε ήδη υπάρχον κανάλι
+     επικοινωνίας (για αυτό και ο συγκεκριµένος τρόπος ονοµάζεται connection oriented). Το πρωτόκολλο
+     επικοινωνίας TCP µέσα στον πυρήνα του λειτουργικού συστήµατος φροντίζει και αναλαµβάνει όλους τους
+     ελέγχους για λάθη στη µετάδοση των δεδοµένων καθώς και την επαναµετάδοση των πακέτων που
+     χάθηκαν. Έτσι εξασφαλίζονται αξιόπιστα κανάλια επικοινωνίας στα οποία οι πληροφορίες φτάνουν µε τη
+     σωστή σειρά και πλήρεις, αν και µε µικρότερη ταχύτητα. Αυτός ο τρόπος δεν κρατά τα όρια των
+     µηνυµάτων που στέλνονται, όπως ακριβώς συµβαίνει και µε τα pipes. Αυτό σηµαίνει ότι κάθε ανάγνωση
+     δεν επιστρέφει απαραίτητα τα δεδοµένα µίας µόνο αποστολής δεδοµένων, αλλά όσα δεδοµένα είναι στον
+     buffer του συστήµατος από προηγούµενες αποστολές. Αυτόν τον τρόπο επικοινωνίας χρησιµοποιούν
+     συνήθως εφαρµογές που έχουν µεταξύ τους µια καθορισµένη σχέση “πελάτη - εξυπηρετητή”. 
+     */
 
     int sd = socket(domain, type, 0);
 
@@ -113,12 +125,24 @@ int main(int argc, char *argv[]){
         perror(0);
         exit(1);
         } 
+    
     fd_set rfds,master;
     int maxfd,nbytes;
     FD_ZERO(&master);                // we must initialize before each call to select
     FD_SET(STDIN_FILENO, &master);   // select will check for input from stdin
     FD_SET(sd, &master);          // select will check for input from socket
-
+    /*
+        int select(int nfds, fd_set *read_ds, fd_set *write_ds, 
+       fd_set *except_ds, struct timeval *timeout); 
+       Η select() δέχεται σαν παραµέτρους δείκτες σε πεδία από bits (bit fields) τύπου fd_set που σηµαίνουν
+       “αν το i-οστό bit είναι 1 τότε η select() αναµένει είσοδο/έξοδο από τον i-οστό descriptor”. Πιο
+       συγκεκριµένα, κάθε δοµή fd_set δουλεύει σαν µάσκα και δηλώνει ποιοί είναι οι descriptors (file ή/και
+       socket) που θα ελεγχθούν. Η select() ελέγχει κάθε µάσκα και αφαιρεί από αυτή όσους descriptor δεν
+       βρίσκει έτοιµους. Η πρώτη παράµετρος είναι η αριθµητική τιµή του µεγαλύτερου descriptor αυξηµένη κατά 1. 
+       Όσοι descriptor είναι στην read_ds θα ελεγχθούν αν είναι έτοιµοι για ανάγνωση δεδοµένων, στην
+       write_ds για γράψιµο και στην except_ds για ορισµένες καταστάσεις που είναι δυνατόν να συµβούν στα
+       sockets. Εδώ µας ενδιαφέρει κυρίως η read_ds. Αν κάποια κατάσταση δεν µας ενδιαφέρει, µπορούµε απλώς
+       να περάσουµε NULL στην αντίστοιχη παράµετρο. */
     maxfd = MAX(STDIN_FILENO, sd) + 1;
 
 
@@ -174,9 +198,9 @@ int main(int argc, char *argv[]){
             if(count_words(read_buff)==4){
                 if(debug)
                    fprintf(stdout,"[DEBUG] sent '%s'\n",read_buff);
-                   fprintf(stdout,"Send verification code: '%s'\n",read_buff);             
+                               
             }
-
+            //κοιτάμε αν οι κωδικοί είναι ίδιοι
             if(!atoi(read_buff) && verification==1){
                 if(strcmp(read_buff,code)>=1){
                     fprintf(stdout,"Try again\n");
@@ -206,7 +230,9 @@ int main(int argc, char *argv[]){
             if(debug){
                 fprintf(stdout,"[DEBUG] read '%s'\n",buffer);
             }
+            //αν έχει σταλεί αριθμός
             if(!atoi(buffer)){
+               fprintf(stdout,"Send verification code: '%s'\n",buffer); 
                strcpy(code,buffer);
                verification=1;
             }
@@ -219,6 +245,7 @@ int main(int argc, char *argv[]){
                token = strtok(buffer," ");
                strcpy(str[0],token);
                for(int i=1;i<4;i++){
+                 //για να πάρεις το επόμενο τοκεν
                  token = strtok(NULL," ");
                  strcpy(str[i],token);
                }
@@ -238,6 +265,13 @@ int main(int argc, char *argv[]){
                time_t now = atoi(str[3]);
                struct tm ts;
                // Format time, "ddd yyyy-mm-dd hh:mm:ss zzz"
+               /*
+               The C library function struct tm *localtime(const time_t *timer)
+                uses the time pointed by timer to fill a tm structure with the values
+                 that represent the corresponding local time. The value of timer is broken
+                  up into the structure tm and expressed in the local time zone.
+
+                */
                ts = *localtime(&now);
                strftime(buffer, sizeof(buffer), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
                printf("%s\n", buffer);
