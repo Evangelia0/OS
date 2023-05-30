@@ -86,9 +86,27 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "unknown host %s\n", host);
         exit(1);
         } 
- 
+    /*
+            struct hostent { 
+        char *h_name; /* official name of host */ 
+        //char **h_aliases; /* alias list */ 
+        //int h_addrtype; /* host address type */ 
+        //int h_length; /* length of address */ 
+        //char **h_addr_list; /* list of addresses from name server */ 
+        //#define h_addr h_addr_list[0] /* address, for backward compatiblity */ 
+        //};
+        /*
+        Στη δοµή hostent, το πεδίο h_name περιέχει το όνοµα του µηχανήµατος στο δίκτυο, το
+        h_addrtype έχει την τιµή AF_INET για τα πρωτόκολλα internet και για τον ίδιο λόγο το h_length
+        έχει πάντα την τιµή 4. Αυτό όµως που µας ενδιαφέρει περισσότερο είναι το πεδίο h_addr_list το οποίο
+        είναι ένας πίνακας από δείκτες όχι σε χαρακτήρες αλλά σε δοµές τύπου in_addr (Σχήµα 3). Ο αριθµός των
+        στοιχείων του πίνακα δεν είναι γνωστός, αλλά γνωρίζουµε ότι το τελευταίο του στοιχείο είναι ένας δείκτης
+        NULL. Όπως θα έχει γίνει ήδη κατανοητό αυτές είναι οι internet διευθύνσεις όλων των δικτύων στα οποία ίσως
+        συµµετέχει το µηχάνηµα. Επειδή στη γενικότερη περίπτωση η µηχανή θα ανήκει σε ένα µόνο δίκτυο έχει
+        ορισθεί ένα macro ώστε να είναι ευκολότερη η προσπέλαση του πρώτου (και µοναδικού στην περίπτωση αυτή) 
+        στοιχείου του πίνακα h_addr_list*/    
     server.sin_family = AF_INET; 
-    server.sin_port = htons(atoi(port)); /* Let the system choose */
+    server.sin_port = htons(atoi(port)); 
     bcopy((char*)hostnm->h_addr, (char*)&server.sin_addr,hostnm->h_length); 
     if (connect(sd, (struct sockaddr *)&server, sizeof(server)) < 0 ) {
         fprintf(stderr, "%s: cannot connect to server: ", host);
@@ -105,6 +123,13 @@ int main(int argc, char *argv[]){
 
 
     while(1){
+        /*
+        On the other hand, the rfds set is used as a temporary set
+         that will be modified by the select function. The memcpy 
+         operation copies the contents of the master set into the rfds 
+         set, creating an identical copy. This is necessary because 
+         the select function modifies the passed-in sets, so it's important 
+         to use a temporary set (in this case, rfds) to preserve the original master set.*/
         memcpy(&rfds, &master, sizeof(master));
 
         // select only considers file descriptors that are smaller than maxfd
